@@ -195,7 +195,7 @@ window.AUDIO_DATA=window.AUDIO_DATA||{};const bundleReq={};
 const VOICE_PARTS={"yonatan": 3, "tamar": 3, "tohar": 1};
 function loadVoice(k){if(!k||bundleReq[k]||!VOICE_PARTS[k])return;bundleReq[k]=1;for(let i=1;i<=VOICE_PARTS[k];i++){const sc=document.createElement('script');sc.src='voice_'+k+'_'+i+'.js';document.head.appendChild(sc);}}
 function clipSrc(h){const d=AUDIO_DATA[h];return d?'data:audio/mpeg;base64,'+d:null;}
-function playQueue(){if(!clipQ.length)return;const p=clipQ[0];if(p.clip&&!clipSrc(p.clip)){p.w=(p.w||0)+1;if(p.w<15){setTimeout(playQueue,300);return;}clipQ.shift();if(p.u0){p.u0.onend=playQueue;speechSynthesis.speak(p.u0);}else playQueue();return;}clipQ.shift();if(p.clip){clipAudio=new Audio(clipSrc(p.clip));clipAudio.onended=playQueue;clipAudio.play().catch(playQueue);}else{const u=p.u;u.onend=playQueue;speechSynthesis.speak(u);}}
+function playQueue(){if(!clipQ.length)return;const p=clipQ[0];if(p.clip&&!clipSrc(p.clip)){p.w=(p.w||0)+1;if(p.w<15){setTimeout(playQueue,300);return;}clipQ.shift();if(p.u0){p.u0.onend=playQueue;speechSynthesis.speak(p.u0);}else playQueue();return;}clipQ.shift();if(p.clip){clipAudio=new Audio(clipSrc(p.clip));try{clipAudio.playbackRate=(S&&S.voice&&S.voice.speed)||1;clipAudio.preservesPitch=true;}catch(e){}clipAudio.onended=playQueue;clipAudio.play().catch(playQueue);}else{const u=p.u;u.onend=playQueue;speechSynthesis.speak(u);}}
 function speak(parts,keep){
   if(!('speechSynthesis' in window)||!parts)return;
   if(!keep){speechSynthesis.cancel();if(clipAudio)clipAudio.pause();clipQ=[];}
@@ -968,10 +968,8 @@ function parent(){cur.kid=null;setTheme();
 
   <div class="row">מחירי החנות: <select id="px">${[4,6,10,15].map(x=>`<option value="${x}" ${((S.priceX||6)===x)?'selected':''}>${x===4?'זול':x===6?'רגיל':x===10?'יקר':'יקר מאוד'} (×${x})</option>`).join('')}</select> <span class="note">שלב שלם שווה עד 16 מטבעות. שלב שכבר קיבל 3 כוכבים לא נותן מטבעות.</span></div>
   <div class="row"><label><input type="checkbox" id="ua" ${S.unlockAll?'checked':''}> לפתוח את כל השלבים (בלי לעבור לפי הסדר)</label></div>
-  <div class="row">קול עברית: <select id="vhe">${voices.filter(v=>/^(he|iw)/i.test(v.lang)).map(v=>`<option ${hv&&hv.name===v.name?'selected':''}>${v.name}</option>`).join('')||'<option>לא נמצא</option>'}</select>
-   קול אנגלית: <select id="ven">${voices.filter(v=>/^en/i.test(v.lang)).map(v=>`<option ${ev&&ev.name===v.name?'selected':''}>${v.name}</option>`).join('')||'<option>לא נמצא</option>'}</select></div>
-  <div class="row">מהירות דיבור: <input type="range" id="vr" min="0.6" max="1.1" step="0.05" value="${(S.voice&&S.voice.rate)||0.9}" style="width:200px"> <button class="small-btn" id="tv">🔊 בדיקה</button></div>
-  <div class="note">אם אין קול עברי: הגדרות ← ניהול כללי ← שפה וקלט ← המרת טקסט לדיבור ← מנוע Google ← להתקין עברית.</div>
+  <div class="row">🔊 הקול באפליקציה מוקלט מראש (קול Kore של Google), ולא תלוי בקול של המכשיר.</div>
+  <div class="row">מהירות הדיבור: <input type="range" id="vr" min="0.75" max="1.15" step="0.05" value="${(S.voice&&S.voice.speed)||1}" style="width:200px"> <span id="vrv">${Math.round(((S.voice&&S.voice.speed)||1)*100)}%</span> <button class="small-btn" id="tv">🔊 בדיקה</button></div>
   <div class="row"><button class="small-btn" id="ex">⬇ גיבוי</button><label class="small-btn" style="cursor:pointer">⬆ שחזור<input type="file" id="im" accept=".json" hidden></label></div>
  </div></div>`;
  $('#back').onclick=home;
@@ -983,9 +981,9 @@ function parent(){cur.kid=null;setTheme();
  app.querySelectorAll('[data-rs]').forEach(b=>{let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='לחצו שוב לאישור האיפוס';return;}S.kids[b.dataset.rs]=defKid();save();parent();};});
  $('#chpin').onclick=()=>pinPad('🔑 הקלידו קוד חדש',a=>pinPad('🔑 הקלידו שוב לאישור',b=>{if(a===b){S.pin=a;save();toast('הקוד הוחלף ✔');parent();}else{toast('הקודים לא תואמים',true);}}));
  $('#ua').onchange=e=>{S.unlockAll=e.target.checked;save();};$('#px').onchange=e=>{S.priceX=+e.target.value;save();};
- const sv=()=>{S.voice=S.voice||{};S.voice.he=$('#vhe').value;S.voice.en=$('#ven').value;S.voice.rate=+$('#vr').value;save();};
- ['#vhe','#ven','#vr'].forEach(id=>$(id).onchange=sv);
- $('#tv').onclick=()=>{sv();speak(['שָׁלוֹם! כָּכָה נִשְׁמָע הַקּוֹל בְּעִבְרִית. בָּ, מָ, לָ.',{t:'And this is English. Cat, cake, tree.',l:'en'}]);};
+ const sv=()=>{S.voice=S.voice||{};S.voice.speed=+$('#vr').value;$('#vrv').textContent=Math.round(S.voice.speed*100)+'%';save();};
+ $('#vr').oninput=sv;
+ $('#tv').onclick=()=>{sv();Object.keys(VOICE_PARTS).forEach(loadVoice);speak(['שָׁלוֹם! כָּכָה נִשְׁמָע הַקּוֹל בְּעִבְרִית. בָּ, מָ, לָ.',{t:'And this is English. Cat, cake, tree.',l:'en'}]);};
  $('#ex').onclick=()=>{const t=JSON.stringify(S);try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download='learning-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();}catch(e){}
   try{navigator.clipboard.writeText(t).then(()=>{$('#ex').textContent='✔ הגיבוי הועתק';},()=>{});}catch(e){}};
  $('#im').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(d&&d.kids){S=d;for(const k in KIDS)if(!S.kids[k])S.kids[k]=defKid();save();parent();}}catch(err){}});};
