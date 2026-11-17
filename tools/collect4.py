@@ -1,0 +1,34 @@
+import asyncio, json
+from playwright.async_api import async_playwright
+JS=r'''()=>{
+ const out=new Map();let TR=null;
+ const add=(p,l)=>{if(!p)return;if(typeof p==='string')p={t:p,l:l||'he'};if(!p.t||!p.t.trim())return;const t=p.l==='en'?p.t:gx(p.t);out.set(TR+'|'+(p.l||'he')+'|'+t,{t,l:p.l||'he',track:TR});};
+ const plan={yonatan:['math1','heb1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2']};
+ S.profiles=[];for(const tr in plan)for(const g of ['m','f'])S.profiles.push({id:tr+'_'+g,name:'x',gender:g,track:tr,char:'fox'});buildKids();
+ for(const tr in plan)for(const g of ['m','f']){cur.kid=tr+'_'+g;TR=tr;const K=KIDS[cur.kid];
+  for(const s of plan[tr]){SUBJECTS[s].stages.forEach((st,i)=>{
+   if(st.L){const sl=typeof st.L==='function'?st.L():st.L;sl.forEach(x=>{(x.say||[x.t.replace(/<[^>]+>/g,'')]).forEach(p=>add(p));const d=document.createElement('div');d.innerHTML=x.v||'';d.querySelectorAll('[data-he]').forEach(e=>add(e.dataset.he));d.querySelectorAll('[data-en]').forEach(e=>add({t:e.dataset.en,l:'en'}));});}
+   if(st.W)st.W.forEach(w=>add({t:w[0],l:'en'}));
+   if(st.mem){st.mem.items().forEach(it=>add(it.say));return;}
+   const dyn=s==='math5'||s==='mult5';const ok=t=>!(dyn&&/\d/.test(typeof t==='string'?t:t.t));
+   for(let k=0;k<1500;k++){const q=st.g();(q.say||[]).filter(ok).forEach(p=>add(p));(q.cue||[]).filter(ok).forEach(p=>add(p));const h=hintSay(q);if(h&&/[א-ת]/.test(h)&&ok(h))add(h);}
+  });}
+  add(K.m?'קֹדֶם צָרִיךְ לְסַיֵּם אֶת הַשָּׁלָב הַקּוֹדֵם':'קודם צריך לסיים את השלב הקודם');
+  add(K.m?'כָּל הַכָּבוֹד! הַחִמּוּם שֶׁל הַיּוֹם הֻשְׁלַם':'כל הכבוד! החימום של היום הושלם');
+  add(K.m?'מְצָא אֶת הַזּוּגוֹת!':'מִצְאִי אֶת הַזּוּגוֹת!');
+  add(K.m?'בּוֹא נִלְמַד. הִנֵּה הַתְּשׁוּבָה הַנְּכוֹנָה.':'בואי נלמד. הנה התשובה הנכונה.');
+  SHOP[tr].forEach(it=>add(K.m?`קָנִיתָ ${it.n}!`:`קָנִית ${it.n}!`));
+  for(let n=0;n<=12;n++)add(NUMW[n]);
+  add('שָׁלוֹם! בּוֹאוּ נְשַׂחֵק!');add('שָׁלוֹם! כָּכָה נִשְׁמָע הַקּוֹל בְּעִבְרִית. בָּ, מָ, לָ.');add({t:'And this is English. Cat, cake, tree.',l:'en'});
+ }
+ // greetings for our own kids (exact names)
+ [['yonatan','m','יהונתן'],['tamar','f','תמר'],['tohar','f','טוהר']].forEach(([tr,g,n])=>{TR=tr;cur.kid=tr+'_'+g;add(g==='m'?`שָׁלוֹם ${n}! בְּמָה נְשַׂחֵק הַיּוֹם?`:`שלום ${n}! במה נתחיל היום?`);});
+ return [...out.values()];}'''
+async def main():
+    async with async_playwright() as p:
+        b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+        pg=await b.new_page(); await pg.goto('file:///home/claude/learning-game/index.html')
+        r=await pg.evaluate(JS); json.dump(r,open('/home/claude/tts/texts4.json','w'),ensure_ascii=False)
+        import collections;print(len(r),collections.Counter(x['track'] for x in r))
+        await b.close()
+asyncio.run(main())
