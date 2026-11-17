@@ -675,8 +675,68 @@ function goalDone(kd){const g=kd.goal;if(g.type==='days')return Object.entries(k
 function goalUnit(g){return g.type==='days'?'ימי תרגול':'שלבים';}
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){S=null;}if(!S)S={pin:'1234',unlockAll:false,kids:{}};if(!S.profiles){S.profiles=[];const old={yonatan:['m','fox'],tamar:['f','bunny'],tohar:['f','bear']};for(const k in old){const kd=S.kids[k];if(kd&&((kd.coins||0)>0||Object.keys(kd.progress||{}).length))S.profiles.push({id:k,name:TRACKS[k].name,gender:old[k][0],track:k,char:old[k][1]});}}buildKids();}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
-load();
+function save(){stamp();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}syncSoon();}
+/* ---------- cloud sync (Firebase REST) ---------- */
+const FB={key:'AIzaSyAqOzfe-O6oKTBJy8Z10Cu8gFfpq9X_Ay0',proj:'learning-game-7c676'};
+const SYNC_KEY='kidsLearnApp.sync';
+let SY=(()=>{try{return JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')||{};}catch(e){return{};}})();
+function sySave(){try{localStorage.setItem(SYNC_KEY,JSON.stringify(SY));}catch(e){}}
+const SET_KEYS=['pin','priceX','readAll','voice','unlockAll'];
+function canon(o){if(Array.isArray(o))return '['+o.map(canon).join(',')+']';if(o&&typeof o==='object')return '{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+canon(o[k])).join(',')+'}';return JSON.stringify(o===undefined?null:o);}
+const noT=o=>{const c=Object.assign({},o);delete c._t;return canon(c);};
+function snap(){const k={},p={},st={};for(const id in S.kids)k[id]=noT(S.kids[id]);(S.profiles||[]).forEach(x=>p[x.id]=noT(x));SET_KEYS.forEach(x=>st[x]=S[x]);return{k,p,s:canon(st)};}
+let SHADOW=null;
+function stamp(){if(!SHADOW){SHADOW=snap();return;}const n=snap(),now=Date.now();
+ for(const id in n.k)if(n.k[id]!==SHADOW.k[id])S.kids[id]._t=now;
+ (S.profiles||[]).forEach(x=>{if(n.p[x.id]!==SHADOW.p[x.id])x._t=now;});
+ if(n.s!==SHADOW.s)S._ts=now;SHADOW=n;}
+function mergeState(L,R){const M={};
+ const sNew=(R._ts||0)>(L._ts||0)?R:L;SET_KEYS.forEach(k=>{if(sNew[k]!==undefined)M[k]=sNew[k];});M._ts=Math.max(L._ts||0,R._ts||0);
+ M.deleted=Object.assign({},R.deleted||{});for(const id in (L.deleted||{}))M.deleted[id]=Math.max(M.deleted[id]||0,L.deleted[id]);
+ const alive=x=>!(M.deleted[x.id]>=(x._t||0));
+ const pr={};(R.profiles||[]).forEach(x=>pr[x.id]=x);
+ M.profiles=[];const seen=new Set();
+ (L.profiles||[]).forEach(x=>{const r=pr[x.id];const w=r&&(r._t||0)>(x._t||0)?r:x;seen.add(x.id);if(alive(w))M.profiles.push(w);});
+ (R.profiles||[]).forEach(x=>{if(!seen.has(x.id)&&alive(x))M.profiles.push(x);});
+ M.kids={};const ids=new Set(M.profiles.map(x=>x.id));
+ ids.forEach(id=>{const a=(L.kids||{})[id],b=(R.kids||{})[id];let w=!a?b:!b?a:((b._t||0)>(a._t||0)?b:a);
+  if(cur&&cur.kid===id&&a)w=a;if(w)M.kids[id]=w;});
+ return M;}
+let syBusy=false,syAgain=false,syTimer=null,syIv=null;
+function syncSoon(ms){if(!SY.fam)return;clearTimeout(syTimer);syTimer=setTimeout(syncNow,ms||2500);}
+let fbTok=null,fbExp=0;
+async function fbToken(){if(fbTok&&Date.now()<fbExp-60000)return fbTok;
+ if(SY.rt){try{const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+FB.key,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(SY.rt)});
+  if(r.ok){const d=await r.json();fbTok=d.id_token;fbExp=Date.now()+(+d.expires_in)*1000;SY.rt=d.refresh_token;sySave();return fbTok;}}catch(e){}}
+ const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+FB.key,{method:'POST',headers:{'Content-Type':'application/json'},body:'{"returnSecureToken":true}'});
+ if(!r.ok)throw new Error('auth '+r.status);const d=await r.json();fbTok=d.idToken;fbExp=Date.now()+(+d.expiresIn)*1000;SY.rt=d.refreshToken;sySave();return fbTok;}
+const fbUrl=c=>`https://firestore.googleapis.com/v1/projects/${FB.proj}/databases/(default)/documents/families/${encodeURIComponent(c)}`;
+async function fbGet(code){const t=await fbToken();const g=await fetch(fbUrl(code),{headers:{Authorization:'Bearer '+t}});
+ if(g.status===404)return{missing:true};if(!g.ok)throw new Error('get '+g.status);const d=await g.json();let data=null;try{data=JSON.parse(d.fields.data.stringValue);}catch(e){}return{data,ut:d.updateTime};}
+function applyRemote(M){const was=canon(S);for(const k of Object.keys(S))if(!(k in M))delete S[k];Object.assign(S,M);buildKids();
+ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}SHADOW=snap();return canon(S)!==was;}
+async function syncNow(){if(!SY.fam)return;if(syBusy){syAgain=true;return;}syBusy=true;let changed=false;
+ try{stamp();
+  for(let a=0;a<4;a++){const g=await fbGet(SY.fam);
+   if(g.data)changed=applyRemote(mergeState(S,g.data))||changed;
+   const local=canon(S);if(g.data&&canon(g.data)===local)break;
+   const t=await fbToken();const q=g.ut?'currentDocument.updateTime='+encodeURIComponent(g.ut):'currentDocument.exists=false';
+   const p=await fetch(fbUrl(SY.fam)+'?'+q,{method:'PATCH',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(S)},at:{integerValue:String(Date.now())}}})});
+   if(p.ok)break;if([400,404,409,412].includes(p.status))continue;throw new Error('put '+p.status);}
+  SY.last=Date.now();SY.err='';sySave();}
+ catch(e){SY.err=navigator.onLine===false?'אין חיבור לאינטרנט':String(e.message||e);sySave();}
+ finally{syBusy=false;if(changed&&!cur.kid&&$('#par'))home();if($('#systat'))$('#systat').innerHTML=syStatus();if(syAgain){syAgain=false;syncSoon(800);}}}
+function syStatus(){if(!SY.fam)return '';if(SY.err)return '⚠ הסנכרון נכשל: '+SY.err;if(!SY.last)return '⏳ מסנכרן…';const d=new Date(SY.last);return '✅ סונכרן לאחרונה ב־'+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});}
+function newFamCode(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const r=new Uint32Array(12);crypto.getRandomValues(r);let s='';for(let i=0;i<12;i++){s+=A[r[i]%A.length];if(i%4===3&&i<11)s+='-';}return s;}
+const normFam=c=>(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/(.{4})(?=.)/g,'$1-');
+async function joinFam(code){code=normFam(code);if(code.replace(/-/g,'').length<10)return 'הקוד קצר מדי';
+ try{const g=await fbGet(code);if(g.missing)return 'לא נמצאה משפחה עם הקוד הזה';SY.fam=code;SY.last=0;SY.err='';sySave();if(g.data)applyRemote(mergeState(S,g.data));await syncNow();return '';}
+ catch(e){return navigator.onLine===false?'אין חיבור לאינטרנט':'שגיאה: '+(e.message||e);}}
+function syStart(){if(syIv)return;syIv=setInterval(()=>{if(document.visibilityState==='visible')syncNow();},60000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow();else if(syTimer){clearTimeout(syTimer);syncNow();}});
+ window.addEventListener('online',()=>syncNow());syncNow();}
+
+load();SHADOW=snap();if(SY.fam)setTimeout(syStart,500);
 
 /* ============ characters: original rigged SVG ============ */
 // kind 'fox' (Yehonatan – ninja fox "שועלי") / 'bunny' (Tamar – designer bunny "פופי")
@@ -795,7 +855,7 @@ function editKid(id){const p=id?S.profiles.find(x=>x.id===id):{name:'',gender:'f
   <div class="row">מין: ${[['m','בן'],['f','בת']].map(([v,l])=>`<button class="chip ${st.gender===v?'on':''}" data-g="${v}">${l}</button>`).join('')}</div>
   <div class="row" style="align-items:flex-start">מסלול: <div>${['tohar','yonatan','tamar'].map(t=>`<button class="chip wide ${st.track===t?'on':''}" data-t="${t}">${TRACK_LABEL[t]}</button>`).join('<br>')}</div></div>
   <div class="row">דמות: ${Object.keys(CHARS).map(c=>`<button class="charpick ${st.char===c?'on':''}" data-c="${c}"><span style="display:block;width:80px;height:100px">${charSVG(c)}</span>${CHARS[c].name}</button>`).join('')}</div>
-  <div class="note">ההקראה במסלולים כתובה בלשון אחת: כיתה א׳ בלשון זכר, גן וכיתה ה׳ בלשון נקבה. המחמאות והכפתורים מותאמים למין שבחרתם.</div>
+  <div class="note">כל הטקסטים וההקראה מותאמים למין שבחרתם (בן / בת).</div>
   <div class="row" style="margin-top:14px"><button class="big" id="sv">${isNew?'יצירת פרופיל':'שמירה'}</button>${isNew?'':'<button class="small-btn warn" id="del">מחיקת הפרופיל</button>'}</div></div>`;
  $('#back').onclick=()=>isNew?home():parent();
  $('#kn').oninput=e=>st.name=e.target.value;
@@ -803,16 +863,16 @@ function editKid(id){const p=id?S.profiles.find(x=>x.id===id):{name:'',gender:'f
  app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{st.track=b.dataset.t;draw();});
  app.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{st.char=b.dataset.c;draw();});
  $('#sv').onclick=()=>{st.name=($('#kn').value||'').trim();if(!st.name){$('#kn').classList.add('shake');$('#kn').focus();return;}
-  if(isNew){st.id='k'+Date.now();S.profiles.push(st);}else Object.assign(p,st);buildKids();save();isNew?home():parent();};
- if($('#del')){let armed=false;$('#del').onclick=()=>{if(!armed){armed=true;$('#del').textContent='לחצו שוב – כל ההתקדמות של '+p.name+' תימחק';return;}S.profiles=S.profiles.filter(x=>x.id!==id);delete S.kids[id];buildKids();save();parent();};}};draw();}
+  if(isNew){st.id='k'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);S.profiles.push(st);}else Object.assign(p,st);buildKids();save();isNew?home():parent();};
+ if($('#del')){let armed=false;$('#del').onclick=()=>{if(!armed){armed=true;$('#del').textContent='לחצו שוב – כל ההתקדמות של '+p.name+' תימחק';return;}S.profiles=S.profiles.filter(x=>x.id!==id);delete S.kids[id];S.deleted=S.deleted||{};S.deleted[id]=Date.now();buildKids();save();parent();};}};draw();}
 function home(){cur={kid:null};setTheme();speechSynthesis&&speechSynthesis.cancel();
  app.innerHTML=`<div class="topbar"><div class="title">🌟 הרפתקת הלמידה</div><button class="iconbtn" id="par" title="הורים">🔒</button></div>
- ${(S.profiles||[]).length?'':`<div class="card" style="font-size:24px;line-height:1.6">👋 בָּרוּכִים הַבָּאִים!<br><span class="note" style="font-size:20px">כדי להתחיל, הורה מוסיף פרופיל לכל ילד שמשחק.</span></div>`}
+ ${(S.profiles||[]).length?'':`<div class="card" style="font-size:24px;line-height:1.6">👋 בָּרוּכִים הַבָּאִים!<br><span class="note" style="font-size:20px">כדי להתחיל, הורה מוסיף פרופיל לכל ילד שמשחק.</span>${SY.fam?'':'<br><button class="small-btn" id="wjoin" style="font-size:20px;margin-top:10px">📲 כבר משחקים במכשיר אחר? הצטרפות עם קוד משפחה</button>'}</div>`}
  <div class="grid g2" style="margin-top:16px">${(S.profiles||[]).map(p=>{const v=KIDS[p.id];return `<button class="card kidcard" data-k="${p.id}"><span class="face" style="display:block;width:110px;height:140px;margin:0 auto">${charSVG(p.char)}</span>${v.name}<small>${v.grade} · 🪙 ${S.kids[p.id].coins}</small></button>`;}).join('')}
  <button class="card kidcard addkid" id="addk"><span class="face">➕</span>${(S.profiles||[]).length?'ילד נוסף':'הוספת ילד'}<small>דורש קוד הורים</small></button></div>`;
  $('#addk').onclick=()=>askPin(()=>editKid(null));
  app.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cur.kid=b.dataset.k;loadVoice(curType());kidHome(true);});
- $('#par').onclick=()=>askPin(parent);
+ $('#par').onclick=()=>askPin(parent);if($('#wjoin'))$('#wjoin').onclick=()=>{app.innerHTML=`<div class="topbar"><button class="iconbtn" id="back">⬅</button><div class="title">📲 הצטרפות עם קוד משפחה</div></div><div class="card" style="text-align:right;font-size:22px">את הקוד רואים במכשיר הראשון: אזור הורים → סנכרון בין מכשירים.<div class="row" style="margin-top:14px"><input id="syc" dir="ltr" placeholder="XXXX-XXXX-XXXX" style="width:260px;font-size:24px;text-transform:uppercase"> <button class="big" id="syjoin">הצטרפות</button></div><div id="syerr" class="note" style="font-size:20px"></div></div>`;$('#back').onclick=home;$('#syjoin').onclick=async()=>{$('#syerr').textContent='⏳ בודק…';const err=await joinFam($('#syc').value);if(err){$('#syerr').textContent='⚠ '+err;return;}syStart();home();};};
 }
 function goalBox(k){const kd=S.kids[k],g=kd.goal,dn=goalDone(kd),p=Math.min(1,dn/g.target);const reached=dn>=g.target;const todayN=(kd.days||{})[today()]||0;
  return reached?`<div class="banner">🎉 הגעת ליעד: ${g.name}! תראו להורים 🎉</div>`:`<div class="goal"><b>🎯 היעד הגדול: ${g.name}</b> <span class="note">(${dn} מתוך ${g.target} ${goalUnit(g)})</span>${g.type==='days'?`<div class="note">היום: ${Math.min(todayN,g.min)} מתוך ${g.min} שלבים ${todayN>=g.min?'✔ היום נספר!':''}</div>`:''}<div class="bar"><i style="width:${p*100}%"></i></div></div>`;}
@@ -1001,15 +1061,23 @@ function parent(){cur.kid=null;setTheme();
   <div class="row">מטבעות: <button class="small-btn" data-c="${k}" data-v="10">+10</button><button class="small-btn" data-c="${k}" data-v="-10">−10</button> · לקבוע ל־<input id="cs_${k}" type="number" min="0" style="width:90px"> <button class="small-btn" data-cs="${k}">קבע</button></div>
   <table><tr><th>תאריך</th><th>שלב</th><th>ציון</th><th>עזרות</th></tr>${kd.log.slice(0,8).map(l=>`<tr><td>${l.d}</td><td>${SUBJECTS[l.s].title} · ${SUBJECTS[l.s].stages[l.i].t}</td><td>${l.score}%</td><td>${l.helps}</td></tr>`).join('')||'<tr><td colspan="4">עוד לא שיחקו</td></tr>'}</table>
   <div class="row"><button class="small-btn warn" data-rs="${k}">איפוס ההתקדמות של ${K.name}</button></div></div>`;}).join('')}
+ <div class="card" style="text-align:right;margin-bottom:16px"><b style="font-size:24px">☁️ סנכרון בין מכשירים</b>
+  ${SY.fam?`<div class="row">קוד המשפחה: <b dir="ltr" style="font-size:28px;letter-spacing:2px">${SY.fam}</b></div><div class="row note">כדי לחבר מכשיר נוסף: לפתוח בו את המשחק → אזור הורים → "הצטרפות עם קוד", ולהקליד את הקוד הזה.</div><div class="row" id="systat">${syStatus()}</div><div class="row"><button class="small-btn" id="synow">🔄 סנכרון עכשיו</button><button class="small-btn warn" id="syoff">ניתוק המכשיר מהסנכרון</button></div>`
+  :`<div class="row note">המכשיר לא מסונכרן – ההתקדמות נשמרת רק בו.</div><div class="row"><button class="small-btn" id="synew">✨ יצירת קוד משפחה חדש</button></div><div class="row">יש לכם כבר קוד? <input id="syc" dir="ltr" placeholder="XXXX-XXXX-XXXX" style="width:220px;text-transform:uppercase"> <button class="small-btn" id="syjoin">הצטרפות עם קוד</button> <span id="syerr" class="note"></span></div>`}
+ </div>
  <div class="card" style="text-align:right">
 
   <div class="row">מחירי החנות: <select id="px">${[4,6,10,15].map(x=>`<option value="${x}" ${((S.priceX||6)===x)?'selected':''}>${x===4?'זול':x===6?'רגיל':x===10?'יקר':'יקר מאוד'} (×${x})</option>`).join('')}</select> <span class="note">שלב שלם שווה עד 16 מטבעות. שלב שכבר קיבל 3 כוכבים לא נותן מטבעות.</span></div>
   <div class="row"><label><input type="checkbox" id="ua" ${S.unlockAll?'checked':''}> לפתוח את כל השלבים (בלי לעבור לפי הסדר)</label></div>
-  <div class="row">🔊 הקול באפליקציה מוקלט מראש (קול Kore של Google), ולא תלוי בקול של המכשיר.</div>
+  <div class="row">🔊 הקול באפליקציה מוקלט מראש (קול Leda של Google), ולא תלוי בקול של המכשיר.</div>
   <div class="row">מהירות הדיבור: <input type="range" id="vr" min="0.75" max="1.15" step="0.05" value="${(S.voice&&S.voice.speed)||1}" style="width:200px"> <span id="vrv">${Math.round(((S.voice&&S.voice.speed)||1)*100)}%</span> <button class="small-btn" id="tv">🔊 בדיקה</button></div>
   <div class="row"><button class="small-btn" id="ex">⬇ גיבוי</button><label class="small-btn" style="cursor:pointer">⬆ שחזור<input type="file" id="im" accept=".json" hidden></label></div>
  </div></div>`;
  $('#back').onclick=home;
+ if($('#synow'))$('#synow').onclick=()=>{SY.err='';$('#systat').innerHTML='⏳ מסנכרן…';syncNow();};
+ if($('#syoff')){let armed=false;$('#syoff').onclick=()=>{if(!armed){armed=true;$('#syoff').textContent='לחצו שוב לאישור (ההתקדמות נשארת במכשיר)';return;}SY={};sySave();parent();};}
+ if($('#synew'))$('#synew').onclick=()=>{SY.fam=newFamCode();SY.last=0;SY.err='';sySave();syStart();parent();};
+ if($('#syjoin'))$('#syjoin').onclick=async()=>{$('#syerr').textContent='⏳ בודק…';const err=await joinFam($('#syc').value);if(err){$('#syerr').textContent='⚠ '+err;return;}syStart();parent();};
  app.querySelectorAll('[data-gs]').forEach(b=>b.onclick=()=>{const k=b.dataset.gs;const g=S.kids[k].goal;const nt=$('#gy_'+k).value;if(nt!==g.type){g.since=today();g.done=0;}g.type=nt;g.name=$('#gn_'+k).value||'פרס';g.target=Math.max(1,+$('#gt_'+k).value||7);g.min=Math.max(1,+$('#gm_'+k).value||3);save();parent();});
  app.querySelectorAll('[data-gr]').forEach(b=>b.onclick=()=>{const g=S.kids[b.dataset.gr].goal;g.done=0;g.since=today();save();parent();});
  app.querySelectorAll('[data-ek]').forEach(b=>b.onclick=()=>editKid(b.dataset.ek));
