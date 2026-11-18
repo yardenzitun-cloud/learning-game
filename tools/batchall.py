@@ -3,6 +3,7 @@ sys.path.insert(0,'/home/claude/tts')
 import importlib.util
 spec=importlib.util.spec_from_file_location('g','/home/claude/tts/genall.py')
 src=open('/home/claude/tts/genall.py').read().split('def one(x):')[0]  # reuse helpers only
+src=src.replace("texts=json.load(open('/home/claude/tts/texts2.json'))",'')  # genall's own phrase list is not needed here
 ns={};exec(src,ns)
 K=open('/home/claude/tts/.key').read().strip();H={"x-goog-api-key":K,"Content-Type":"application/json"}
 texts=json.load(open(sys.argv[1] if len(sys.argv)>1 else '/home/claude/tts/texts2.json'))
