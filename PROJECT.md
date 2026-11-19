@@ -43,7 +43,7 @@ That is the original author's project. If you leave it, your family's data is st
    service cloud.firestore {
      match /databases/{db}/documents {
        match /families/{code} {
-         allow read, write: if request.auth != null;
+         allow get, create, update: if request.auth != null;
        }
      }
    }
@@ -52,7 +52,7 @@ That is the original author's project. If you leave it, your family's data is st
 5. Project settings → General → Your apps → add a Web app. Copy `apiKey` and `projectId`.
 6. In `index.html` replace the `FB` line with your values: `key` = apiKey, `proj` = projectId.
 
-The family code is the only thing that separates one family's data from another's, so treat it like a password. Each family is one Firestore document at `families/<code>`, holding the whole app state as a JSON string.
+`get` (not `read`) matters: `read` would also allow listing the whole collection, which would let anyone with the API key see every family's code and data. With `get` you can only open a document whose code you already know. The family code is the only thing that separates one family's data from another's, so treat it like a password. Each family is one Firestore document at `families/<code>`, holding the whole app state as a JSON string.
 
 Sync is optional. Without a family code the app works fully and keeps everything in the browser's `localStorage` (key `kidsLearnApp.v3`).
 
