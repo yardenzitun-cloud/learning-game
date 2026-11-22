@@ -22,7 +22,7 @@ JS=r'''()=>{
   add('שָׁלוֹם! בּוֹאוּ נְשַׂחֵק!');add('שָׁלוֹם! כָּכָה נִשְׁמָע הַקּוֹל בְּעִבְרִית. בָּ, מָ, לָ.');add({t:'And this is English. Cat, cake, tree.',l:'en'});
  }
  // weekly Torah portion / holiday quiz – its own bundle, loaded only when the quiz starts
- TR='parasha';SUBJECTS.parasha.stages.forEach(st=>{for(let k=0;k<200;k++){const q=st.g();(q.say||[]).forEach(p=>add(p));add(q.hint);}});
+ TR='parasha';SUBJECTS.parasha.stages.forEach(st=>{(st.L||[]).forEach(sl=>add(sl.t.replace(/<[^>]+>/g,'')));for(let k=0;k<200;k++){const q=st.g();(q.say||[]).forEach(p=>add(p));add(q.hint);}});
  ['כָּל הַכָּבוֹד! מַגִּיעַ לְךָ מַמְתָּק. לֵךְ לְסַפֵּר לְאַבָּא אוֹ לְאִמָּא!','כל הכבוד! מגיע לך ממתק. לכי לספר לאבא או לאמא!'].forEach(x=>add(x));
  // greetings for our own kids (exact names)
  [['yonatan','m','יהונתן'],['tamar','f','תמר'],['tohar','f','טוהר']].forEach(([tr,g,n])=>{TR=tr;cur.kid=tr+'_'+g;add(g==='m'?`שָׁלוֹם ${n}! בְּמָה נְשַׂחֵק הַיּוֹם?`:`שלום ${n}! במה נתחיל היום?`);});
