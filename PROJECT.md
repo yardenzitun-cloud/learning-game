@@ -77,6 +77,10 @@ Everything is in one `<script>` block. In rough order from top to bottom:
 - **State and sync**: `defKid`, `load`, `save`, then the Firebase functions (`fbToken`, `fbGet`, `mergeState`, `syncNow`).
 - **Screens**: `home`, `kidHome`, `map`, `runStage`/`showQ`/`answer`, `shop`, `room`, `parent` (parent area, protected by a PIN, default `1234`).
 
+## Weekly Torah portion quiz
+
+`SUBJECTS.parasha` holds 5 questions for each weekly portion (`PSH`, `PQ`), for the double portions (`PAIRS`) and for the holidays (`HQ`). `weekly()` picks the portion of the coming Shabbat in the Israel schedule (`PCAL`), or a holiday quiz during the six days before a holiday (`HCAL`). Both tables were generated with the `pyluach` Python package and cover September 2026 to October 2028; extend them before then. Finishing the quiz records a treat in `kd.treats`, which parents mark as given in the parent area. Its voice clips are in their own bundle (`voice_parasha_*.js`), loaded only when the quiz starts.
+
 ## Adding content
 
 **A new stage in an existing subject.** Find the subject in `SUBJECTS` and add a line:
