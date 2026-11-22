@@ -68,9 +68,11 @@ Everything is in one `<script>` block. In rough order from top to bottom:
   - `e*` – grade 5 English (`eLetterR`, `eList`, `eMagic`...), word lists in `EW`
   - `t*` – kindergarten (colors, shapes, numbers, animals)
   - `m*` – multiplication table track
+  - grade 8 English (`g8` track): word lists in `V8` and `R8`, grammar items in `GR8`, lessons in `L8`, generators `gGap`, `gOpp`, `gComp`, `gSilent`, `gSoftHard`, `gPastForm`, `gIng`
+  - English distractors are built by `lookAlike()` / `nearest()`: options that differ by a letter or vowel, so the word has to be read
 - **Lessons**: short explanations shown before a new topic. `LESSON` (grade 1 math), `TLES` (kindergarten), `ML` (multiplication) and the Hebrew lesson builders. `LMAP` connects a stage title to its lesson.
 - **`SUBJECTS`**: the curriculum. Each subject is a list of stages built with `st(title, generator, chapterTitle?)`. The order of the list is the order on the kid's map.
-- **`TRACKS`**: which subjects each track gets, plus theme text. Current tracks: `tohar` (kindergarten), `yonatan` (grade 1), `tamar` (grade 5). The track names are just internal ids; parents create profiles with any name and pick a track.
+- **`TRACKS`**: which subjects each track gets, plus theme text. Current tracks: `tohar` (kindergarten), `yonatan` (grade 1), `tamar` (grade 5), `g8` (grade 8 English, Ready To Go!). The track names are just internal ids; parents create profiles with any name and pick a track.
 - **`SHOP`, `ART`, `FURN`**: shop items per track. Furniture is drawn as inline SVG (`ART`) and can be dragged around the room.
 - **State and sync**: `defKid`, `load`, `save`, then the Firebase functions (`fbToken`, `fbGet`, `mergeState`, `syncNow`).
 - **Screens**: `home`, `kidHome`, `map`, `runStage`/`showQ`/`answer`, `shop`, `room`, `parent` (parent area, protected by a PIN, default `1234`).

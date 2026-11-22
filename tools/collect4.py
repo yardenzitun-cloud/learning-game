@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 JS=r'''()=>{
  const out=new Map();let TR=null;
  const add=(p,l)=>{if(!p)return;if(typeof p==='string')p={t:p,l:l||'he'};if(!p.t||!p.t.trim())return;const t=p.l==='en'?p.t:gx(p.t);out.set(TR+'|'+(p.l||'he')+'|'+t,{t,l:p.l||'he',track:TR});};
- const plan={yonatan:['math1','heb1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2']};
+ const plan={yonatan:['math1','heb1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2'],g8:['g8words','g8gram','g8read']};
  S.profiles=[];for(const tr in plan)for(const g of ['m','f'])S.profiles.push({id:tr+'_'+g,name:'x',gender:g,track:tr,char:'fox'});buildKids();
  for(const tr in plan)for(const g of ['m','f']){cur.kid=tr+'_'+g;TR=tr;const K=KIDS[cur.kid];
   for(const s of plan[tr]){SUBJECTS[s].stages.forEach((st,i)=>{
@@ -11,7 +11,7 @@ JS=r'''()=>{
    if(st.W)st.W.forEach(w=>add({t:w[0],l:'en'}));
    if(st.mem){st.mem.items().forEach(it=>add(it.say));return;}
    const dyn=s==='math5'||s==='mult5';const ok=t=>!(dyn&&/\d/.test(typeof t==='string'?t:t.t));
-   for(let k=0;k<1500;k++){const q=st.g();(q.say||[]).filter(ok).forEach(p=>add(p));(q.cue||[]).filter(ok).forEach(p=>add(p));const h=hintSay(q);if(h&&/[א-ת]/.test(h)&&ok(h))add(h);}
+   for(let k=0;k<1500;k++){const q=st.g();(q.say||[]).filter(ok).forEach(p=>add(p));(q.cue||[]).filter(ok).forEach(p=>add(p));if(tr==='g8')(q.after||[]).forEach(p=>add(p));const h=hintSay(q);if(h&&/[א-ת]/.test(h)&&ok(h))add(h);}
   });}
   add(K.m?'קֹדֶם צָרִיךְ לְסַיֵּם אֶת הַשָּׁלָב הַקּוֹדֵם':'קודם צריך לסיים את השלב הקודם');
   add(K.m?'כָּל הַכָּבוֹד! הַחִמּוּם שֶׁל הַיּוֹם הֻשְׁלַם':'כל הכבוד! החימום של היום הושלם');
