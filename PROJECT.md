@@ -72,7 +72,7 @@ Everything is in one `<script>` block. In rough order from top to bottom:
   - English distractors are built by `lookAlike()` / `nearest()`: options that differ by a letter or vowel, so the word has to be read
 - **Lessons**: short explanations shown before a new topic. `LESSON` (grade 1 math), `TLES` (kindergarten), `ML` (multiplication) and the Hebrew lesson builders. `LMAP` connects a stage title to its lesson.
 - **`SUBJECTS`**: the curriculum. Each subject is a list of stages built with `st(title, generator, chapterTitle?)`. The order of the list is the order on the kid's map.
-- **`TRACKS`**: which subjects each track gets, plus theme text. Current tracks: `tohar` (kindergarten), `yonatan` (grade 1), `tamar` (grade 5), `g8` (grade 8 English, Ready To Go!). The track names are just internal ids; parents create profiles with any name and pick a track.
+- **`TRACKS`**: which subjects each track gets, plus theme text. Current tracks: `tohar` (kindergarten), `yonatan` (grade 1), `tamar` (grade 5), `g2` (grade 2 math) and `g3` (grade 3 math + English), built from the Ministry of Education curriculum rather than a textbook (generators prefixed `z`, English lists in `EW3`), `g8` (grade 8 English, Ready To Go!). The `g2`/`g3` shops reuse Yehonatan's and Tamar's items. The track names are just internal ids; parents create profiles with any name and pick a track.
 - **`SHOP`, `ART`, `FURN`**: shop items per track. Furniture is drawn as inline SVG (`ART`) and can be dragged around the room.
 - **State and sync**: `defKid`, `load`, `save`, then the Firebase functions (`fbToken`, `fbGet`, `mergeState`, `syncNow`).
 - **Screens**: `home`, `kidHome`, `map`, `runStage`/`showQ`/`answer`, `shop`, `room`, `parent` (parent area, protected by a PIN, default `1234`).

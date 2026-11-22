@@ -6,14 +6,14 @@ C={};miss=[]
 for x in O:
   if os.path.exists(AUD+H(x)+'.mp3'):C[x['t']]=H(x)
   else:miss.append(x['t'])
-B={'yonatan':set(),'tohar':set(),'tamar':set(),'g8':set(),'extra':set()}
+B={'yonatan':set(),'tohar':set(),'tamar':set(),'g8':set(),'g2':set(),'g3':set(),'extra':set()}
 for x in T:
   if x['t'] in C:B[x['track']].add(C[x['t']])
 for x in O:
   if x['track']=='extra' and x['t'] in C:B['extra'].add(C[x['t']])
 def write(name,d):open(G+name,'w').write('window.AUDIO_DATA=Object.assign(window.AUDIO_DATA||{},'+json.dumps(d,separators=(',',':'))+');')
 parts={}
-for tr in ['yonatan','tohar','tamar','g8']:
+for tr in ['yonatan','tohar','tamar','g8','g2','g3']:
   i=1
   while os.path.exists(G+f'voice_{tr}_{i}.js'):os.remove(G+f'voice_{tr}_{i}.js');i+=1
   cur={};size=0;n=0

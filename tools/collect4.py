@@ -3,14 +3,14 @@ from playwright.async_api import async_playwright
 JS=r'''()=>{
  const out=new Map();let TR=null;
  const add=(p,l)=>{if(!p)return;if(typeof p==='string')p={t:p,l:l||'he'};if(!p.t||!p.t.trim())return;const t=p.l==='en'?p.t:gx(p.t);out.set(TR+'|'+(p.l||'he')+'|'+t,{t,l:p.l||'he',track:TR});};
- const plan={yonatan:['math1','heb1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2'],g8:['g8words','g8gram','g8read']};
+ const plan={yonatan:['math1','heb1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2'],g8:['g8words','g8gram','g8read'],g2:['math2'],g3:['math3','eng3']};
  S.profiles=[];for(const tr in plan)for(const g of ['m','f'])S.profiles.push({id:tr+'_'+g,name:'x',gender:g,track:tr,char:'fox'});buildKids();
  for(const tr in plan)for(const g of ['m','f']){cur.kid=tr+'_'+g;TR=tr;const K=KIDS[cur.kid];
   for(const s of plan[tr]){SUBJECTS[s].stages.forEach((st,i)=>{
    if(st.L){const sl=typeof st.L==='function'?st.L():st.L;sl.forEach(x=>{(x.say||[x.t.replace(/<[^>]+>/g,'')]).forEach(p=>add(p));const d=document.createElement('div');d.innerHTML=x.v||'';d.querySelectorAll('[data-he]').forEach(e=>add(e.dataset.he));d.querySelectorAll('[data-en]').forEach(e=>add({t:e.dataset.en,l:'en'}));});}
    if(st.W)st.W.forEach(w=>add({t:w[0],l:'en'}));
    if(st.mem){st.mem.items().forEach(it=>add(it.say));return;}
-   const dyn=s==='math5'||s==='mult5';const ok=t=>!(dyn&&/\d/.test(typeof t==='string'?t:t.t));
+   const dyn=['math5','mult5','math2','math3'].includes(s);const ok=t=>!(dyn&&/\d/.test(typeof t==='string'?t:t.t));
    for(let k=0;k<1500;k++){const q=st.g();(q.say||[]).filter(ok).forEach(p=>add(p));(q.cue||[]).filter(ok).forEach(p=>add(p));if(tr==='g8')(q.after||[]).forEach(p=>add(p));const h=hintSay(q);if(h&&/[א-ת]/.test(h)&&ok(h))add(h);}
   });}
   add(K.m?'קֹדֶם צָרִיךְ לְסַיֵּם אֶת הַשָּׁלָב הַקּוֹדֵם':'קודם צריך לסיים את השלב הקודם');
