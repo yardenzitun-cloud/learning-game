@@ -11,7 +11,7 @@ JS=r'''()=>{
    if(st.W)st.W.forEach(w=>add({t:w[0],l:'en'}));
    if(st.mem){st.mem.items().forEach(it=>add(it.say));return;}
    const dyn=['math5','mult5','math2','math3'].includes(s)||st.dyn;const ok=t=>!(dyn&&/\d/.test(typeof t==='string'?t:t.t));
-   for(let k=0;k<1500;k++){const q=st.g();(q.say||[]).filter(ok).forEach(p=>add(p));(q.cue||[]).filter(ok).forEach(p=>add(p));if(tr==='g8')(q.after||[]).forEach(p=>add(p));const h=hintSay(q);if(h&&/[א-ת]/.test(h)&&ok(h))add(h);}
+   for(let k=0;k<1500;k++){const q=st.g();(q.say||[]).filter(ok).forEach(p=>add(p));(q.cue||[]).filter(ok).forEach(p=>add(p));if(tr==='g8')(q.after||[]).forEach(p=>add(p));if(q.readOpts)optTexts(q).forEach(x=>x&&add(x));const h=hintSay(q);if(h&&/[א-ת]/.test(h)&&ok(h))add(h);}
   });}
   add(K.m?'קֹדֶם צָרִיךְ לְסַיֵּם אֶת הַשָּׁלָב הַקּוֹדֵם':'קודם צריך לסיים את השלב הקודם');
   add(K.m?'כָּל הַכָּבוֹד! הַחִמּוּם שֶׁל הַיּוֹם הֻשְׁלַם':'כל הכבוד! החימום של היום הושלם');
@@ -22,7 +22,7 @@ JS=r'''()=>{
   add('שָׁלוֹם! בּוֹאוּ נְשַׂחֵק!');add('שָׁלוֹם! כָּכָה נִשְׁמָע הַקּוֹל בְּעִבְרִית. בָּ, מָ, לָ.');add({t:'And this is English. Cat, cake, tree.',l:'en'});
  }
  // weekly Torah portion / holiday quiz – its own bundle, loaded only when the quiz starts
- TR='parasha';SUBJECTS.parasha.stages.forEach(st=>{(st.L||[]).forEach(sl=>add(sl.t.replace(/<[^>]+>/g,'')));for(let k=0;k<200;k++){const q=st.g();(q.say||[]).forEach(p=>add(p));add(q.hint);}});
+ TR='parasha';SUBJECTS.parasha.stages.forEach(st=>{(st.L||[]).forEach(sl=>add(sl.t.replace(/<[^>]+>/g,'')));for(let k=0;k<200;k++){const q=st.g();(q.say||[]).forEach(p=>add(p));optTexts(q).forEach(x=>x&&add(x));add(q.hint);}});
  ['כָּל הַכָּבוֹד! מַגִּיעַ לְךָ מַמְתָּק. לֵךְ לְסַפֵּר לְאַבָּא אוֹ לְאִמָּא!','כל הכבוד! מגיע לך ממתק. לכי לספר לאבא או לאמא!'].forEach(x=>add(x));
  // greetings for our own kids (exact names)
  [['yonatan','m','יהונתן'],['tamar','f','תמר'],['tohar','f','טוהר']].forEach(([tr,g,n])=>{TR=tr;cur.kid=tr+'_'+g;add(g==='m'?`שָׁלוֹם ${n}! בְּמָה נְשַׂחֵק הַיּוֹם?`:`שלום ${n}! במה נתחיל היום?`);});
