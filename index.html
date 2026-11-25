@@ -162,6 +162,7 @@ body.tohar{--accent:#f4a261;--accent2:#2a9d8f;--bg:#fff7ec}
 .ri.lit{filter:drop-shadow(0 0 12px rgba(255,214,102,.9))}
 .ri.off .glow{opacity:0}.ri.off .nl{stroke:#adb5bd}.ri.off .bulb{fill:#dee2e6}.ri.off svg{filter:saturate(.75) brightness(.9)}
 .ri.wig{animation:wig .5s}
+.iconbtn.rdo{width:auto;padding:0 18px;font-size:24px;font-weight:bold;background:#fff3bf}
 .opt.reading{outline:6px solid var(--accent);outline-offset:2px;transform:scale(1.06);transition:transform .15s}@keyframes wig{25%{rotate:-6deg}75%{rotate:6deg}}
 .scene .empty{position:absolute;inset:0;margin:auto;width:80%;height:fit-content;font-size:26px;background:#fff;border-radius:18px;padding:18px;text-align:center}
 .item .e svg{width:100%;height:76px}
@@ -1790,7 +1791,9 @@ function runStage(s,i){const st=SUBJECTS[s].stages[i];if(st.mem){runMemory(s,i);
  const prev=(S.kids[cur.kid].progress[s]||{})[i]||{};G={s,i,qs,n:0,first:0,coins:0,helps:0,tries:0,helped:false,input:'',replay:(prev.stars||0)>=3,base:qs.length,extra:0};showQ();}
 const optTexts=q=>(q.opts||[]).map(o=>o.say||String(o.label).replace(/<br>/g,' ').replace(/<[^>]+>/g,'').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'').trim());
 function optRead(q){const T=optTexts(q),mark=j=>app.querySelectorAll('.opt').forEach((b,k)=>b.classList.toggle('reading',k===j));const out=[];T.forEach((t,j)=>{if(t)out.push({fn:()=>mark(j)},t);});out.push({fn:()=>mark(-1)});return out;}
-const qSay=q=>q.readOpts?[...(q.say||[]),...optRead(q)]:q.say;
+const autoOpts=q=>q.readOpts&&curType()==='tohar';
+const qSay=q=>autoOpts(q)?[...(q.say||[]),...optRead(q)]:q.say;
+function stopSpeak(){try{speechSynthesis.cancel();}catch(e){}if(clipAudio)clipAudio.pause();clipQ=[];app.querySelectorAll('.opt.reading').forEach(b=>b.classList.remove('reading'));}
 function showQ(){const q=G.qs[G.n];G.tries=0;G.helped=false;G.input='';const src=q.src||{s:G.s,i:G.i};
  const dots=G.qs.map((_,j)=>`<i class="${j<G.n?'done':j===G.n?'cur':''}"></i>`).join('');
  let body='';
@@ -1798,9 +1801,10 @@ function showQ(){const q=G.qs[G.n];G.tries=0;G.helped=false;G.input='';const src
  else body=`<div class="opts">${q.opts.map((o,j)=>`<button class="opt ${o.cls||''}" data-j="${j}">${o.label}</button>`).join('')}</div>`;
  app.innerHTML=`<div class="topbar"><button class="iconbtn" id="x">✖</button><div class="title" style="text-align:center">${trackHtml()}</div>${coinsPill()}</div>
  <div class="play">${q.review||G.warm?`<div class="rvbadge">${G.warm?'🔥 חִמּוּם':'🔁 חֲזָרָה'} · ${SUBJECTS[src.s].stages[src.i].t}</div>`:''}<div class="prompt ${q.big?'long':''}">${gx(q.prompt)}</div>${q.vis?`<div class="vis">${q.vis}</div>`:''}${body}<div id="hint"></div>
- <div class="toolbar"><button class="iconbtn" id="spk">🔊</button><button class="iconbtn" id="help">💡</button><button class="iconbtn" id="les" title="הסבר">📘</button>${SUBJECTS[src.s].stages[src.i].W?'<button class="iconbtn" id="dic" title="מילון">📖</button>':''}${G.warm?'':'<button class="iconbtn" id="skip" title="דילוג">⏭</button>'}</div></div>`;
+ <div class="toolbar">${q.readOpts?'<button class="iconbtn rdo" id="rdo">🔊 תְּשׁוּבוֹת</button>':''}<button class="iconbtn" id="spk">🔊</button><button class="iconbtn" id="help">💡</button><button class="iconbtn" id="les" title="הסבר">📘</button>${SUBJECTS[src.s].stages[src.i].W?'<button class="iconbtn" id="dic" title="מילון">📖</button>':''}${G.warm?'':'<button class="iconbtn" id="skip" title="דילוג">⏭</button>'}</div></div>`;
  $('#x').onclick=()=>{speechSynthesis.cancel();if(G.warm||G.week)kidHome();else map(G.s);};
  $('#spk').onclick=()=>speak(qSay(q));
+ if($('#rdo'))$('#rdo').onclick=()=>speak(optRead(q));
  $('#help').onclick=()=>askPin(()=>giveHelp(q));
  let li=src.i;while(li>0&&!SUBJECTS[src.s].stages[li].L)li--;if(!SUBJECTS[src.s].stages[li].L)$('#les').style.display='none';
  $('#les').onclick=()=>{const keep=G.tries;showLesson(src.s,li,()=>{showQ();G.tries=keep;});};
@@ -1808,7 +1812,7 @@ function showQ(){const q=G.qs[G.n];G.tries=0;G.helped=false;G.input='';const src
  if($('#skip'))$('#skip').onclick=()=>askPin(()=>{const kd=S.kids[cur.kid],pr=kd.progress[G.s]=kd.progress[G.s]||{};const p=pr[G.i]||{};if((p.stars||0)<2)kd.goal.done++;kd.days[today()]=(kd.days[today()]||0)+1;pr[G.i]=Object.assign(p,{stars:Math.max(p.stars||0,2),skipped:true});save();speechSynthesis.cancel();if(G.i<SUBJECTS[G.s].stages.length-1)startStage(G.s,G.i+1);else map(G.s);},'⏭ דילוג על השלב – קוד הורים');
  app.querySelectorAll('.objs.tap').forEach(box=>{let c=0;box.querySelectorAll('span:not(.gone)').forEach(sp=>sp.onclick=()=>{if(sp.classList.contains('counted'))return;sp.classList.add('counted');c++;speak([NUMW[c]||String(c)]);});});
  if(q.type==='num'){app.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const d=b.dataset.d;if(d==='del')G.input=G.input.slice(0,-1);else if(d==='ok'){if(G.input!=='')answer(G.input,null);return;}else if(G.input.length<7)G.input+=d;$('#nb').innerHTML=G.input?fmt(G.input):'&nbsp;';});}
- else app.querySelectorAll('.opt').forEach(b=>b.onclick=e=>{if(e.target.closest('.objs')&&e.target.tagName==='SPAN'){}answer(q.opts[+b.dataset.j].v,b);});
+ else app.querySelectorAll('.opt').forEach(b=>b.onclick=e=>{if(e.target.closest('.objs')&&e.target.tagName==='SPAN'){}if(q.readOpts)stopSpeak();answer(q.opts[+b.dataset.j].v,b);});
  // in "more/less" stage the groups are answers, not counters
  app.querySelectorAll('.opt .objs').forEach(o=>o.classList.remove('tap'));
  requestAnimationFrame(()=>{const m=$('#masc');m.style.transition='none';trackTo(Math.max(0,G.n-1),false);void m.offsetWidth;m.style.transition='';if(G.n>0)setTimeout(()=>trackTo(G.n,true),80);m.onclick=()=>{anim(m,'cheer');tone([660,880]);};runHopWords();});
