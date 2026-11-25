@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 JS=r'''()=>{
  const out=new Map();let TR=null;
  const add=(p,l)=>{if(!p)return;if(typeof p==='string')p={t:p,l:l||'he'};if(!p.t||!p.t.trim())return;const t=p.l==='en'?p.t:gx(p.t);out.set(TR+'|'+(p.l||'he')+'|'+t,{t,l:p.l||'he',track:TR});};
- const plan={yonatan:['math1','heb1','sci1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2'],g8:['g8words','g8gram','g8read'],g2:['math2'],g3:['math3','eng3']};
+ const plan={yonatan:['math1','heb1','sci1','emo1'],tamar:['mult5','math5','eng5'],tohar:['gan1','gan2','emo1'],g8:['g8words','g8gram','g8read'],g2:['math2'],g3:['math3','eng3']};
  S.profiles=[];for(const tr in plan)for(const g of ['m','f'])S.profiles.push({id:tr+'_'+g,name:'x',gender:g,track:tr,char:'fox'});buildKids();
  for(const tr in plan)for(const g of ['m','f']){cur.kid=tr+'_'+g;TR=tr;const K=KIDS[cur.kid];
   for(const s of plan[tr]){SUBJECTS[s].stages.forEach((st,i)=>{
@@ -19,6 +19,7 @@ JS=r'''()=>{
   add(K.m?'בּוֹא נִלְמַד. הִנֵּה הַתְּשׁוּבָה הַנְּכוֹנָה.':'בואי נלמד. הנה התשובה הנכונה.');
   SHOP[tr].forEach(it=>add(K.m?`קָנִיתָ ${it.n}!`:`קָנִית ${it.n}!`));
   for(let n=0;n<=12;n++)add(NUMW[n]);
+  CALM.forEach(x=>add(x));
   add('שָׁלוֹם! בּוֹאוּ נְשַׂחֵק!');add('שָׁלוֹם! כָּכָה נִשְׁמָע הַקּוֹל בְּעִבְרִית. בָּ, מָ, לָ.');add({t:'And this is English. Cat, cake, tree.',l:'en'});
  }
  // weekly Torah portion / holiday quiz – its own bundle, loaded only when the quiz starts
